@@ -446,6 +446,63 @@ input:checked + .slider:before {
     gap: 10px;
     margin-top: 10px;
 }
+
+/* Format Hint */
+.format-hint {
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.format-hint strong {
+    color: var(--primary);
+}
+
+.format-hint code {
+    background: #2a2a2a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    margin: 0 2px;
+}
+
+/* New Question Entry Style */
+.question-entry {
+    margin: 20px 0;
+}
+
+.question-textarea {
+    min-height: 200px;
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    color: white;
+    width: 100%;
+    resize: vertical;
+}
+
+.format-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.format-example {
+    background: #2a2a2a;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    font-family: monospace;
+    font-size: 13px;
+}
 </style>
 </head>
 
@@ -604,6 +661,19 @@ input:checked + .slider:before {
             </div>
         </div>
         
+        <!-- Format Hint -->
+        <div class="format-hint">
+            <strong>Format Hint:</strong> You can write questions in any format. Examples:
+            <div class="format-examples">
+                <div class="format-example">A) Option text<br>A- Option text<br>A. Option text<br>A Option text</div>
+                <div class="format-example">B) Option text<br>B- Option text<br>B. Option text<br>B Option text</div>
+                <div class="format-example">C) Option text<br>C- Option text<br>C. Option text<br>C Option text</div>
+                <div class="format-example">D) Option text<br>D- Option text<br>D. Option text<br>D Option text</div>
+                <div class="format-example">a) Option text<br>a- Option text<br>a. Option text<br>a Option text</div>
+            </div>
+            Just select the correct answer from the dropdown menu below each question.
+        </div>
+        
         <!-- Question Generator -->
         <div style="background:var(--card-bg); padding:20px; border-radius:10px; margin:20px 0;">
             <h3><i class="fas fa-question-circle"></i> Questions</h3>
@@ -632,17 +702,6 @@ input:checked + .slider:before {
                         <i class="fas fa-file-import"></i> Import
                     </button>
                 </div>
-            </div>
-            
-            <div style="margin:15px 0; padding:15px; background:#1a1a1a; border-radius:8px;">
-                <label style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="autoNumber" checked>
-                    Auto-number questions
-                </label>
-                <label style="display:flex; align-items:center; gap:10px; margin-top:10px;">
-                    <input type="checkbox" id="showOptions" checked>
-                    Show options grid
-                </label>
             </div>
         </div>
         
@@ -870,56 +929,43 @@ function createQuestionElement(number) {
             </div>
         </div>
         
-        <textarea class="qText" placeholder="Enter question text..."
-                  oninput="updateQuestionPreview(this)"></textarea>
+        <div class="question-entry">
+            <textarea class="qText question-textarea" placeholder="Enter your question and options here...
+Example format:
+What is the capital of France?
+A) Paris
+B) London
+C) Berlin
+D) Madrid
+
+Or any format:
+What is 2+2?
+A- 3
+B- 4
+C- 5
+D- 6"></textarea>
+        </div>
         
-        <div style="margin:15px 0;">
-            <label style="display:block; margin-bottom:8px;">Options:</label>
-            <div class="options-grid">
-                <div class="option-item" data-option="A">
-                    <input type="radio" name="correct${number}" value="A" onchange="markCorrectOption(this)">
-                    <span style="font-weight:bold; color:#ff6b6b;">A)</span>
-                    <input type="text" class="optionText" placeholder="Option A" style="flex:1;">
-                </div>
-                <div class="option-item" data-option="B">
-                    <input type="radio" name="correct${number}" value="B" onchange="markCorrectOption(this)">
-                    <span style="font-weight:bold; color:#4ecdc4;">B)</span>
-                    <input type="text" class="optionText" placeholder="Option B" style="flex:1;">
-                </div>
-                <div class="option-item" data-option="C">
-                    <input type="radio" name="correct${number}" value="C" onchange="markCorrectOption(this)">
-                    <span style="font-weight:bold; color:#ffe66d;">C)</span>
-                    <input type="text" class="optionText" placeholder="Option C" style="flex:1;">
-                </div>
-                <div class="option-item" data-option="D">
-                    <input type="radio" name="correct${number}" value="D" onchange="markCorrectOption(this)">
-                    <span style="font-weight:bold; color:#95e1d3;">D)</span>
-                    <input type="text" class="optionText" placeholder="Option D" style="flex:1;">
-                </div>
-                <div class="option-item" data-option="E">
-                    <input type="radio" name="correct${number}" value="E" onchange="markCorrectOption(this)">
-                    <span style="font-weight:bold; color:#ffaaa5;">E)</span>
-                    <input type="text" class="optionText" placeholder="Option E" style="flex:1;">
-                </div>
-            </div>
+        <div style="margin-top:15px;">
+            <label>Correct Answer:</label>
+            <select class="correctAnswer" style="width:100%;">
+                <option value="">Select Correct Answer</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+            </select>
         </div>
         
         <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border);">
             <label>Explanation (optional):</label>
             <textarea class="explanation" placeholder="Add explanation for the correct answer..." 
-                      style="height:60px; margin-top:5px;"></textarea>
+                      style="height:60px; margin-top:5px; width:100%;"></textarea>
         </div>
     `;
     
     questionsContainer.appendChild(div);
-}
-
-function markCorrectOption(radio) {
-    const optionItem = radio.closest('.option-item');
-    document.querySelectorAll('.option-item').forEach(item => {
-        item.classList.remove('correct');
-    });
-    optionItem.classList.add('correct');
 }
 
 function addSingleQuestion() {
@@ -986,20 +1032,6 @@ function renumberQuestions() {
     });
 }
 
-// Randomize answers
-function randomizeAnswers() {
-    document.querySelectorAll('.question-card').forEach(card => {
-        const options = ['A', 'B', 'C', 'D', 'E'];
-        const randomOption = options[Math.floor(Math.random() * options.length)];
-        const radio = card.querySelector(`input[value="${randomOption}"]`);
-        if (radio) {
-            radio.checked = true;
-            markCorrectOption(radio);
-        }
-    });
-    showToast('Answers randomized!');
-}
-
 // Validate quiz
 function validateQuiz() {
     let errors = [];
@@ -1009,17 +1041,10 @@ function validateQuiz() {
     
     document.querySelectorAll('.question-card').forEach((card, index) => {
         const questionText = card.querySelector('.qText').value.trim();
-        const hasCorrect = card.querySelector('input[type="radio"]:checked');
-        const options = card.querySelectorAll('.optionText');
-        let emptyOptions = 0;
-        
-        options.forEach(opt => {
-            if (!opt.value.trim()) emptyOptions++;
-        });
+        const correctAnswer = card.querySelector('.correctAnswer').value;
         
         if (!questionText) errors.push(`Question ${index + 1} has no text`);
-        if (!hasCorrect) errors.push(`Question ${index + 1} has no correct answer`);
-        if (emptyOptions > 2) errors.push(`Question ${index + 1} has too many empty options`);
+        if (!correctAnswer) errors.push(`Question ${index + 1} has no correct answer selected`);
     });
     
     if (errors.length === 0) {
@@ -1055,21 +1080,13 @@ function saveQuiz(silent = false) {
     
     document.querySelectorAll(".question-card").forEach(card => {
         const questionText = card.querySelector('.qText').value;
-        const correctAnswer = card.querySelector('input[type="radio"]:checked')?.value || '';
+        const correctAnswer = card.querySelector('.correctAnswer').value;
         const explanation = card.querySelector('.explanation').value;
-        const options = {};
-        
-        card.querySelectorAll('.option-item').forEach(item => {
-            const option = item.dataset.option;
-            const text = item.querySelector('.optionText').value;
-            options[option] = text;
-        });
         
         data.questions.push({
             text: questionText,
             answer: correctAnswer,
-            explanation: explanation,
-            options: options
+            explanation: explanation
         });
     });
     
@@ -1243,21 +1260,9 @@ function loadQuizByKey(key) {
         // Set question text
         card.querySelector('.qText').value = q.text;
         
-        // Set options
-        if (q.options) {
-            Object.entries(q.options).forEach(([option, text]) => {
-                const input = card.querySelector(`.option-item[data-option="${option}"] .optionText`);
-                if (input) input.value = text;
-            });
-        }
-        
         // Set correct answer
         if (q.answer) {
-            const radio = card.querySelector(`input[value="${q.answer}"]`);
-            if (radio) {
-                radio.checked = true;
-                markCorrectOption(radio);
-            }
+            card.querySelector('.correctAnswer').value = q.answer;
         }
         
         // Set explanation
@@ -1270,163 +1275,7 @@ function loadQuizByKey(key) {
     updateCompletion();
 }
 
-function deleteSelectedQuiz() {
-    const name = loadSheet.value;
-    if (!name) return;
-    
-    if (confirm(`Delete quiz "${name}"?`)) {
-        const subject = loadSubject.value || '';
-        const key = subject ? `quiz_${subject}_${name}` : 
-            Object.keys(localStorage).find(k => k.endsWith(`_${name}`));
-        
-        if (key) {
-            localStorage.removeItem(key);
-            updateQuizList();
-            showToast('Quiz deleted!');
-        }
-    }
-}
-
-function exportSelectedQuiz() {
-    const name = loadSheet.value;
-    if (!name) return;
-    
-    const subject = loadSubject.value || '';
-    const key = subject ? `quiz_${subject}_${name}` : 
-        Object.keys(localStorage).find(k => k.endsWith(`_${name}`));
-    
-    if (key) {
-        const data = localStorage.getItem(key);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${name}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('Quiz exported!');
-    }
-}
-
-// Templates
-function showTemplates() {
-    const modal = document.getElementById('templatesModal');
-    const list = document.getElementById('templatesList');
-    
-    const templates = [
-        { name: 'MCQ Template', questions: 10, subject: 'General' },
-        { name: 'Quick Quiz', questions: 5, subject: 'General' },
-        { name: 'Exam Practice', questions: 25, subject: 'General' },
-        { name: 'Review Test', questions: 15, subject: 'General' }
-    ];
-    
-    list.innerHTML = templates.map(t => `
-        <div style="padding:15px; border:1px solid var(--border); margin:10px 0; border-radius:8px; cursor:pointer;"
-             onclick="loadTemplate(${t.questions})">
-            <strong>${t.name}</strong><br>
-            <small>${t.questions} questions • ${t.subject}</small>
-        </div>
-    `).join('');
-    
-    modal.style.display = 'flex';
-}
-
-function loadTemplate(questionCount) {
-    closeModal();
-    newQuiz();
-    questionCount.value = questionCount;
-    createQuestions();
-    
-    // Set some default values
-    sheetName.value = `Template ${questionCount} Questions`;
-    showToast(`Template loaded with ${questionCount} questions`);
-}
-
-function closeModal() {
-    document.querySelectorAll('.modal').forEach(m => {
-        m.style.display = 'none';
-    });
-}
-
-// Import questions
-function importQuestions() {
-    const modal = document.getElementById('importModal');
-    modal.style.display = 'flex';
-}
-
-function parseImportedQuestions() {
-    const text = document.getElementById('importText').value;
-    const lines = text.split('\n');
-    let currentQuestion = null;
-    const questions = [];
-    
-    lines.forEach(line => {
-        line = line.trim();
-        if (!line) return;
-        
-        // Check if it's a question number
-        if (/^\d+[\.\)]/.test(line)) {
-            if (currentQuestion) questions.push(currentQuestion);
-            currentQuestion = {
-                text: line.replace(/^\d+[\.\)]\s*/, ''),
-                options: {},
-                answer: ''
-            };
-        }
-        // Check if it's an option
-        else if (/^[A-E][\.\)]/.test(line)) {
-            if (currentQuestion) {
-                const option = line[0];
-                const optionText = line.substring(2).trim();
-                currentQuestion.options[option] = optionText;
-            }
-        }
-        // Check for correct answer
-        else if (/^correct:\s*[A-E]/i.test(line)) {
-            if (currentQuestion) {
-                currentQuestion.answer = line.match(/[A-E]/i)[0].toUpperCase();
-            }
-        }
-        // Append to question text
-        else if (currentQuestion && !currentQuestion.text.includes(line)) {
-            currentQuestion.text += '\n' + line;
-        }
-    });
-    
-    if (currentQuestion) questions.push(currentQuestion);
-    
-    // Add imported questions
-    questions.forEach((q, index) => {
-        if (index === 0) {
-            // First question, replace current ones
-            questionCount.value = questions.length;
-            createQuestions();
-        }
-        
-        const card = document.querySelectorAll('.question-card')[index];
-        if (card) {
-            card.querySelector('.qText').value = q.text;
-            
-            Object.entries(q.options).forEach(([option, text]) => {
-                const input = card.querySelector(`.option-item[data-option="${option}"] .optionText`);
-                if (input) input.value = text;
-            });
-            
-            if (q.answer) {
-                const radio = card.querySelector(`input[value="${q.answer}"]`);
-                if (radio) {
-                    radio.checked = true;
-                    markCorrectOption(radio);
-                }
-            }
-        }
-    });
-    
-    closeModal();
-    showToast(`Imported ${questions.length} questions`);
-}
-
-// Generate output
+// Generate output - FIXED VERSION
 function generate() {
     if (!document.querySelectorAll('.question-card').length) {
         showToast('Please add questions first!', 'error');
@@ -1453,7 +1302,7 @@ function generate() {
     
     document.querySelectorAll(".question-card").forEach((card, index) => {
         const questionText = card.querySelector('.qText').value;
-        const correctAnswer = card.querySelector('input[type="radio"]:checked')?.value || '';
+        const correctAnswer = card.querySelector('.correctAnswer').value;
         const explanation = card.querySelector('.explanation').value;
         
         html += `<div style="margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid #2a2a2a;">`;
@@ -1461,15 +1310,39 @@ function generate() {
         
         // Split question text into lines
         const lines = questionText.split('\n');
+        let hasOptions = false;
+        
         lines.forEach(l => {
             l = l.trim();
             if (!l) return;
             
-            if (correctAnswer && /^[A-E][\.\)]/.test(l) && l[0].toUpperCase() === correctAnswer)
-                html += `<div style="color:#ff0000; font-weight:bold; margin:5px 0; padding:5px; background:rgba(255,0,0,0.1); border-radius:4px;">${l}</div>`;
-            else
+            // Check if this line could be an option
+            // Supports multiple formats: A), A., A-, A (with space), and lowercase versions
+            const optionRegex = /^([A-Ea-e])[\.\)\-\:\s]/;
+            const match = l.match(optionRegex);
+            
+            if (match && correctAnswer) {
+                hasOptions = true;
+                const optionLetter = match[1].toUpperCase();
+                
+                if (optionLetter === correctAnswer) {
+                    // This is the correct answer - highlight it in red
+                    html += `<div style="color:#ff0000; font-weight:bold; margin:5px 0; padding:5px; background:rgba(255,0,0,0.1); border-radius:4px; border-left:3px solid #ff0000;">${l}</div>`;
+                } else {
+                    html += `<div style="color:#cfcfcf; margin:5px 0;">${l}</div>`;
+                }
+            } else {
+                // Regular text (question or other content)
                 html += `<div style="color:#cfcfcf; margin:5px 0;">${l}</div>`;
+            }
         });
+        
+        // If no options were found with the regex, show a warning
+        if (!hasOptions && lines.length > 1) {
+            html += `<div style="color:#ff9800; margin:10px 0; padding:10px; background:rgba(255,152,0,0.1); border-radius:4px; border-left:3px solid #ff9800;">
+                <i class="fas fa-exclamation-triangle"></i> No formatted options detected. Make sure options start with A), B), C), D), or E) (or A., B-, etc.)
+            </div>`;
+        }
         
         // Add explanation if exists
         if (explanation) {
@@ -1487,7 +1360,7 @@ function generate() {
     
     document.getElementById('outputContent').innerHTML = html;
     document.getElementById('output').style.display = 'block';
-    showToast('Output generated successfully!');
+    showToast('Output generated successfully! Correct answers are highlighted in red.');
     
     // Scroll to output
     document.getElementById('output').scrollIntoView({ behavior: 'smooth' });
@@ -1517,7 +1390,7 @@ function downloadOutput() {
             <style>
                 body { background:#0b0b0b; color:white; font-family:Arial; padding:40px; max-width:800px; margin:0 auto; }
                 .question { margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid #2a2a2a; }
-                .answer { color:#ff0000; font-weight:bold; }
+                .answer { color:#ff0000; font-weight:bold; background:rgba(255,0,0,0.1); padding:5px; border-left:3px solid #ff0000; border-radius:4px; }
             </style>
         </head>
         <body>
@@ -1599,65 +1472,6 @@ async function saveImage() {
     }
 }
 
-// PDF function (placeholder - would need jsPDF library)
-function savePDF() {
-    showToast('PDF export requires jsPDF library. Consider adding it!', 'warning');
-}
-
-// Share function
-function shareQuiz() {
-    if (navigator.share) {
-        navigator.share({
-            title: sheetName.value || 'Quiz',
-            text: `Check out this quiz: ${subjectSelect.value}`,
-            url: window.location.href
-        });
-    } else {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            showToast('Link copied to clipboard!');
-        });
-    }
-}
-
-// Print function
-function printQuiz() {
-    const printContent = document.getElementById('outputContent').innerHTML;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Print Quiz</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
-                @media print {
-                    body { padding: 0; }
-                    .no-print { display: none; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="no-print" style="margin-bottom:20px;">
-                <button onclick="window.print()">Print</button>
-                <button onclick="window.close()">Close</button>
-            </div>
-            ${printContent}
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}
-
-// Stats function
-function showStats() {
-    alert(`Quiz Statistics:
-    • Total Quizzes: ${Object.keys(localStorage).filter(k => k.startsWith('quiz_')).length}
-    • Recent Quizzes: ${recentQuizzes.length}
-    • Storage Used: ${Math.round((JSON.stringify(localStorage).length / 1024) * 100) / 100} KB
-    
-    Tip: You can export your quizzes as JSON for backup!`);
-}
-
 // Initialize on load
 window.addEventListener('load', () => {
     updateHomeStats();
@@ -1676,7 +1490,11 @@ window.addEventListener('load', () => {
 
 // Close modals on ESC
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal').forEach(m => {
+            m.style.display = 'none';
+        });
+    }
 });
 </script>
 </body>
