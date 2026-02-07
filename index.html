@@ -215,6 +215,17 @@ let d=i<10?"0"+i:i;
 day.innerHTML+=`<option>${d}</option>`;
 }
 
+/* ===== OTHER ===== */
+function toggleOtherSubject(){
+otherSubject.style.display =
+subjectSelect.value==="other" ? "block":"none";
+}
+
+function toggleOtherGroup(){
+otherGroup.style.display =
+groupSelect.value==="other" ? "block":"none";
+}
+
 /* ===== NAV ===== */
 function newQuiz(){
 homeScreen.style.display="none";
@@ -231,27 +242,14 @@ homeScreen.style.display="none";
 mainUI.style.display="block";
 }
 
-/* ===== OTHER ===== */
-function toggleOtherSubject(){
-otherSubject.style.display =
-subjectSelect.value==="other" ? "block":"none";
-}
-
-function toggleOtherGroup(){
-otherGroup.style.display =
-groupSelect.value==="other" ? "block":"none";
-}
-
 /* ===== ADD QUESTIONS ===== */
 function addQuestion(){
-
 let count = prompt("How many questions?");
 if(!count) return;
 
 questionsContainer.innerHTML="";
 
 for(let i=1;i<=count;i++){
-
 let div=document.createElement("div");
 div.className="questionBox";
 
@@ -279,7 +277,7 @@ questionsContainer.appendChild(div);
 }
 }
 
-/* ===== SAVE QUIZ AUTO ===== */
+/* ===== SAVE QUIZ ===== */
 function saveQuiz(){
 
 let subject =
@@ -287,16 +285,10 @@ subjectSelect.value==="other"
 ? otherSubject.value
 : subjectSelect.value;
 
-let name = sheetName.value.trim();
-if(!name){
-alert("Write sheet name first");
-return;
-}
-
-let key="quiz_"+subject+"_"+name;
+let key="quiz_"+subject+"_"+sheetName.value;
 
 let data={
-sheetName:name,
+sheetName:sheetName.value,
 subject:subject,
 group:groupSelect.value,
 year:year.value,
@@ -313,11 +305,9 @@ answer:box.querySelector(".correctAnswer").value
 });
 
 localStorage.setItem(key,JSON.stringify(data));
-alert("Saved");
 }
 
-/* ===== LOAD MENU ===== */
-
+/* ===== LOAD QUIZ ===== */
 const subjects=[
 "Oral histology",
 "Microbiology",
@@ -329,9 +319,9 @@ const subjects=[
 ];
 
 subjects.forEach(s=>{
-let o=document.createElement("option");
-o.textContent=s;
-loadSubject.appendChild(o);
+let opt=document.createElement("option");
+opt.textContent=s;
+loadSubject.appendChild(opt);
 });
 
 function showLoadMenu(){
@@ -352,9 +342,9 @@ loadSheet.innerHTML="";
 
 keys.forEach(k=>{
 let name=k.replace("quiz_"+subject+"_","");
-let o=document.createElement("option");
-o.textContent=name;
-loadSheet.appendChild(o);
+let opt=document.createElement("option");
+opt.textContent=name;
+loadSheet.appendChild(opt);
 });
 }
 
@@ -364,6 +354,8 @@ let subject=loadSubject.value;
 let name=loadSheet.value;
 
 let raw=localStorage.getItem("quiz_"+subject+"_"+name);
+if(!raw) return;
+
 let data=JSON.parse(raw);
 
 newQuiz();
@@ -433,7 +425,7 @@ lines.forEach(l=>{
 l=l.trim();
 if(!l) return;
 
-if(/^[A-E]/i.test(l) && l[0].toUpperCase()===correct)
+if(correct && /^[A-E]/i.test(l) && l[0].toUpperCase()===correct)
 html+=`<p class="answer">${l}</p>`;
 else
 html+=`<p>${l}</p>`;
@@ -455,9 +447,11 @@ el.style.width="820px";
 el.style.height="auto";
 el.style.overflow="visible";
 
+let scaleValue = window.innerWidth < 900 ? 1.2 : 2;
+
 html2canvas(el,{
 backgroundColor:"#0b0b0b",
-scale:2
+scale:scaleValue
 }).then(canvas=>{
 let link=document.createElement("a");
 link.download="quiz.png";
