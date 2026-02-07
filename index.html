@@ -6,9 +6,11 @@
 <title>Quiz Generator Pro</title>
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
+/* كل الأنماط كما هي */
 :root {
     --primary: #c40000;
     --primary-dark: #9d0000;
@@ -231,29 +233,6 @@ textarea {
     border-color: var(--primary);
 }
 
-/* Options Grid */
-.options-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    margin: 10px 0;
-}
-
-.option-item {
-    background: #1a1a1a;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.option-item.correct {
-    border-color: var(--success);
-    background: rgba(0, 168, 107, 0.1);
-}
-
 /* Output Preview */
 .output-container {
     background: var(--card-bg);
@@ -362,10 +341,6 @@ textarea {
         width: 100%;
         justify-content: center;
     }
-    
-    .options-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Custom Scrollbar */
@@ -384,52 +359,6 @@ textarea {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-dark);
-}
-
-/* Toggle Switch */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 30px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #2a2a2a;
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 22px;
-    width: 22px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: var(--primary);
-}
-
-input:checked + .slider:before {
-    transform: translateX(30px);
 }
 
 /* Quick Actions */
@@ -883,7 +812,7 @@ function updateCompletion() {
     if (subjectSelect.value) completed++;
     if (groupSelect.value) completed++;
     if (year.value && month.value && day.value) completed++;
-    if (document.querySelectorAll('.questionBox').length > 0) completed++;
+    if (document.querySelectorAll('.question-card').length > 0) completed++;
     
     const percent = Math.round((completed / totalFields) * 100);
     document.getElementById('completionPercent').textContent = percent + '%';
@@ -1275,6 +1204,44 @@ function loadQuizByKey(key) {
     updateCompletion();
 }
 
+function deleteSelectedQuiz() {
+    const name = loadSheet.value;
+    if (!name) return;
+    
+    if (confirm(`Delete quiz "${name}"?`)) {
+        const subject = loadSubject.value || '';
+        const key = subject ? `quiz_${subject}_${name}` : 
+            Object.keys(localStorage).find(k => k.endsWith(`_${name}`));
+        
+        if (key) {
+            localStorage.removeItem(key);
+            updateQuizList();
+            showToast('Quiz deleted!');
+        }
+    }
+}
+
+function exportSelectedQuiz() {
+    const name = loadSheet.value;
+    if (!name) return;
+    
+    const subject = loadSubject.value || '';
+    const key = subject ? `quiz_${subject}_${name}` : 
+        Object.keys(localStorage).find(k => k.endsWith(`_${name}`));
+    
+    if (key) {
+        const data = localStorage.getItem(key);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Quiz exported!');
+    }
+}
+
 // Generate output - FIXED VERSION
 function generate() {
     if (!document.querySelectorAll('.question-card').length) {
@@ -1409,7 +1376,57 @@ function downloadOutput() {
     showToast('HTML file downloaded!');
 }
 
-// Save as Image (improved)
+// ===== الدالة الجديدة: تقسيم المحتوى إلى صفحات =====
+function splitContentIntoPages(content, maxHeight = 1200) {
+    const pages = [];
+    let currentPage = [];
+    let currentHeight = 0;
+    
+    // تقسيم المحتوى إلى عناصر (كل سؤال هو عنصر منفصل)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const elements = Array.from(tempDiv.children);
+    
+    // إضافة الهيدر كصفحة منفصلة أولاً
+    const headerElements = elements.filter(el => 
+        el.className === 'preview-header' || 
+        el.querySelector('.preview-header')
+    );
+    
+    if (headerElements.length > 0) {
+        pages.push([headerElements[0]]);
+    }
+    
+    // العناصر المتبقية (الأسئلة)
+    const questionElements = elements.filter(el => 
+        !el.className.includes('preview-header') && 
+        !el.querySelector('.preview-header')
+    );
+    
+    // توزيع الأسئلة على الصفحات
+    questionElements.forEach(element => {
+        // تقدير ارتفاع العنصر (تقريبي)
+        const estimatedHeight = element.innerHTML.length / 5; // تقدير تقريبي
+        
+        if (currentHeight + estimatedHeight > maxHeight && currentPage.length > 0) {
+            pages.push([...currentPage]);
+            currentPage = [];
+            currentHeight = 0;
+        }
+        
+        currentPage.push(element);
+        currentHeight += estimatedHeight;
+    });
+    
+    // إضافة آخر صفحة إذا كانت تحتوي على عناصر
+    if (currentPage.length > 0) {
+        pages.push(currentPage);
+    }
+    
+    return pages;
+}
+
+// ===== الإصلاح: Save as Image مع صفحات متعددة =====
 async function saveImage() {
     if (!document.getElementById('outputContent').innerHTML) {
         showToast('Please generate the quiz first!', 'error');
@@ -1422,45 +1439,101 @@ async function saveImage() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         saveBtn.disabled = true;
         
-        // Create temporary container
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'fixed';
-        tempDiv.style.left = '-9999px';
-        tempDiv.style.top = '0';
-        tempDiv.style.width = '800px';
-        tempDiv.style.background = '#0b0b0b';
-        tempDiv.style.padding = '40px';
-        tempDiv.style.color = 'white';
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        tempDiv.innerHTML = document.getElementById('outputContent').innerHTML;
-        document.body.appendChild(tempDiv);
+        const content = document.getElementById('outputContent').innerHTML;
+        const pages = splitContentIntoPages(content, 1000); // تقسيم إلى صفحات بارتفاع 1000px
         
-        // Wait for rendering
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (pages.length === 0) {
+            showToast('No content to save!', 'error');
+            return;
+        }
         
-        // Capture image
-        const canvas = await html2canvas(tempDiv, {
-            backgroundColor: '#0b0b0b',
-            scale: 2,
-            useCORS: true,
-            logging: false
-        });
-        
-        // Clean up
-        document.body.removeChild(tempDiv);
-        
-        // Create download link
-        const link = document.createElement('a');
-        const fileName = `${sheetName.value || 'quiz'}_${new Date().getTime()}.png`;
-        link.download = fileName;
-        link.href = canvas.toDataURL('image/png');
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showToast('Image saved successfully!');
+        // إنشاء ZIP لجميع الصفحات إذا كان هناك أكثر من صفحة
+        if (pages.length > 1) {
+            const JSZip = window.JSZip;
+            if (!JSZip) {
+                // تحميل JSZip ديناميكياً إذا لم يكن موجوداً
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+            }
+            
+            const zip = new JSZip();
+            
+            for (let i = 0; i < pages.length; i++) {
+                const pageContent = pages[i].map(el => el.outerHTML).join('');
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'fixed';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '0';
+                tempDiv.style.width = '800px';
+                tempDiv.style.background = '#0b0b0b';
+                tempDiv.style.padding = '40px';
+                tempDiv.style.color = 'white';
+                tempDiv.style.fontFamily = 'Arial, sans-serif';
+                tempDiv.innerHTML = pageContent;
+                document.body.appendChild(tempDiv);
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const canvas = await html2canvas(tempDiv, {
+                    backgroundColor: '#0b0b0b',
+                    scale: 3, // زيادة الدقة
+                    useCORS: true,
+                    logging: false
+                });
+                
+                document.body.removeChild(tempDiv);
+                
+                // إضافة الصورة إلى ZIP
+                const imageData = canvas.toDataURL('image/png').split(',')[1];
+                zip.file(`quiz_page_${i + 1}.png`, imageData, {base64: true});
+            }
+            
+            // تحميل ملف ZIP
+            const zipBlob = await zip.generateAsync({type: 'blob'});
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${sheetName.value || 'quiz'}_pages.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast(`${pages.length} pages saved as ZIP file!`);
+            
+        } else {
+            // صفحة واحدة فقط
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'fixed';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '0';
+            tempDiv.style.width = '800px';
+            tempDiv.style.background = '#0b0b0b';
+            tempDiv.style.padding = '40px';
+            tempDiv.style.color = 'white';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
+            tempDiv.innerHTML = pages[0].map(el => el.outerHTML).join('');
+            document.body.appendChild(tempDiv);
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const canvas = await html2canvas(tempDiv, {
+                backgroundColor: '#0b0b0b',
+                scale: 3, // زيادة الدقة
+                useCORS: true,
+                logging: false
+            });
+            
+            document.body.removeChild(tempDiv);
+            
+            const link = document.createElement('a');
+            const fileName = `${sheetName.value || 'quiz'}.png`;
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/png');
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Image saved successfully!');
+        }
         
     } catch (error) {
         console.error('Error saving image:', error);
@@ -1470,6 +1543,168 @@ async function saveImage() {
         saveBtn.innerHTML = '<i class="fas fa-image"></i> Save as Image';
         saveBtn.disabled = false;
     }
+}
+
+// ===== الإصلاح: Save as PDF مع صفحات متعددة =====
+async function savePDF() {
+    if (!document.getElementById('outputContent').innerHTML) {
+        showToast('Please generate the quiz first!', 'error');
+        return;
+    }
+    
+    try {
+        const saveBtn = document.querySelector('button[onclick="savePDF()"]');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating PDF...';
+        saveBtn.disabled = true;
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        const content = document.getElementById('outputContent').innerHTML;
+        const pages = splitContentIntoPages(content, 700); // تقسيم إلى صفحات تناسب A4
+        
+        let currentY = 20;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        
+        for (let i = 0; i < pages.length; i++) {
+            if (i > 0) {
+                pdf.addPage();
+                currentY = margin;
+            }
+            
+            const pageContent = pages[i].map(el => el.outerHTML).join('');
+            const tempDiv = document.createElement('div');
+            tempDiv.style.width = (pageWidth - 2 * margin) + 'mm';
+            tempDiv.style.background = '#ffffff';
+            tempDiv.style.color = '#000000';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
+            tempDiv.style.padding = '10px';
+            tempDiv.innerHTML = pageContent;
+            document.body.appendChild(tempDiv);
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            const canvas = await html2canvas(tempDiv, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            document.body.removeChild(tempDiv);
+            
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const imgWidth = pageWidth - 2 * margin;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
+            
+            // إضافة رقم الصفحة
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Page ${i + 1} of ${pages.length}`, pageWidth - margin - 20, pageHeight - 10);
+        }
+        
+        pdf.save(`${sheetName.value || 'quiz'}.pdf`);
+        showToast('PDF saved successfully with ' + pages.length + ' pages!');
+        
+    } catch (error) {
+        console.error('Error creating PDF:', error);
+        showToast('Error creating PDF!', 'error');
+    } finally {
+        const saveBtn = document.querySelector('button[onclick="savePDF()"]');
+        saveBtn.innerHTML = '<i class="fas fa-file-pdf"></i> Save as PDF';
+        saveBtn.disabled = false;
+    }
+}
+
+// دالة مساعدة لتحميل scripts ديناميكياً
+function loadScript(url) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// ===== Share function =====
+function shareQuiz() {
+    if (!document.getElementById('outputContent').innerHTML) {
+        showToast('Please generate the quiz first!', 'error');
+        return;
+    }
+    
+    const quizData = {
+        title: sheetName.value || 'Quiz',
+        subject: subjectSelect.value === "other" ? otherSubject.value : subjectSelect.value,
+        group: groupSelect.value === "other" ? otherGroup.value : groupSelect.value,
+        date: `${year.value}-${month.value}-${day.value}`
+    };
+    
+    const shareText = `${quizData.title}\nSubject: ${quizData.subject}\nGroup: ${quizData.group}\nDate: ${quizData.date}\n\nGenerated by Quiz Generator Pro`;
+    
+    navigator.clipboard.writeText(shareText).then(() => {
+        showToast('Quiz details copied to clipboard!');
+    }).catch(() => {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('Quiz details copied to clipboard!');
+    });
+}
+
+// ===== دالة الطباعة =====
+function printQuiz() {
+    if (!document.getElementById('outputContent').innerHTML) {
+        showToast('Please generate the quiz first!', 'error');
+        return;
+    }
+    
+    const printContent = document.getElementById('outputContent').innerHTML;
+    const originalContent = document.body.innerHTML;
+    
+    document.body.innerHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${sheetName.value || 'Quiz'} - Print</title>
+            <style>
+                @media print {
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .page-break { page-break-after: always; }
+                    .no-print { display: none !important; }
+                }
+                body { max-width: 800px; margin: 0 auto; }
+                .question { margin-bottom: 25px; }
+                .correct-answer { color: #c40000; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            ${printContent}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() {
+                        document.body.innerHTML = \`${originalContent.replace(/`/g, '\\`')}\`;
+                        window.location.reload();
+                    }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `;
 }
 
 // Initialize on load
@@ -1496,6 +1731,9 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+
+// ===== دالة لتحميل JSZip إذا لم يكن موجوداً =====
+window.JSZip = window.JSZip || null;
 </script>
 </body>
 </html>
