@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Generator</title>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<style>
+body{
+    background:#0b0b0b;
+    margin:0;
+    padding:20px;
+    color:white;
+    font-family:Arial;
+}
+
+input, textarea, select{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    background:#1a1a1a;
+    color:white;
+    border:1px solid #444;
+    border-radius:6px;
+    box-sizing:border-box;
+}
+
+button{
+    padding:10px 12px;
+    margin-top:8px;
+    background:#c40000;
+    color:white;
+    border:none;
+    cursor:pointer;
+    border-radius:6px;
+}
+
+.headerBox{
+    background:#151515;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:18px;
+}
+
+.subjectTitle{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.sheetName{
+    display:inline-block;
+    margin-top:8px;
+    padding:4px 10px;
+    font-size:15px;
+    color:#ff3b3b;
+    background:#1a1a1a;
+    border:1px solid #ff3b3b;
+    border-radius:6px;
+    font-weight:600;
+}
+
+.metaRow{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+    flex-wrap:wrap;
+}
+
+.metaCard{
+    background:#101010;
+    border:1px solid #2d2d2d;
+    border-radius:8px;
+    padding:6px 12px;
+}
+
+.questionBox{
+    border:1px solid #444;
+    padding:15px;
+    margin-top:15px;
+    border-radius:8px;
+}
+
+.question{
+    padding-bottom:12px;
+    margin-bottom:12px;
+    border-bottom:1px solid #2a2a2a;
+}
+
+.question p{
+    margin:0;
+    line-height:1.25;
+    color:#cfcfcf;
+}
+
+.question p.answer{
+    color:#ff0000 !important;
+    font-weight:bold;
+}
+
+.footer{
+    margin-top:25px;
+    text-align:right;
+    font-size:12px;
+    color:#666;
+}
+
+#output{
+    background:#0b0b0b;
+    padding:25px;
+    border-radius:10px;
+}
+
+#homeScreen{
+    text-align:center;
+    margin-top:120px;
+}
+
+#loadMenu{
+    display:none;
+    margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="homeScreen">
+    <h2>Quiz Generator</h2>
+    <button onclick="newQuiz()">New Quiz</button>
+    <button onclick="showLoadMenu()">Load Quiz</button>
+
+    <div id="loadMenu">
+        <h3>Select Subject</h3>
+        <select id="loadSubject"></select>
+
+        <h3>Select Sheet</h3>
+        <select id="loadSheet"></select>
+
+        <br>
+        <button onclick="loadSelectedQuiz()">Open Quiz</button>
+    </div>
+</div>
+
+<div id="mainUI" style="display:none;">
+
+<h2>Quiz Form</h2>
+
+<button onclick="goHome()">Home</button>
+<button onclick="goBack()">Back</button>
+
+<label>Sheet Name:</label>
+<input id="sheetName">
+
+<label>Subject:</label>
+<select id="subjectSelect" onchange="toggleOtherSubject()">
+<option>Oral histology</option>
+<option>Microbiology</option>
+<option>Removeable prosthodontic</option>
+<option>Pathology</option>
+<option>Fixed prosthodontic</option>
+<option>Conservative</option>
+<option>Pharmacology</option>
+<option value="other">Other</option>
+</select>
+
+<input id="otherSubject" placeholder="Write subject name" style="display:none">
+
+<label>Group:</label>
+<select id="groupSelect" onchange="toggleOtherGroup()">
+<option>A1-B1</option>
+<option>C1-D1</option>
+<option>A2-B2</option>
+<option>C2-D2</option>
+<option value="other">Other</option>
+</select>
+
+<input id="otherGroup" placeholder="Write group name" style="display:none">
+
+<label>Year:</label>
+<select id="year">
+<option>2025</option>
+<option selected>2026</option>
+</select>
+
+<label>Day:</label>
+<select id="day"></select>
+
+<label>Month:</label>
+<select id="month">
+<option>01</option><option>02</option><option>03</option>
+<option>04</option><option>05</option><option>06</option>
+<option>07</option><option>08</option><option>09</option>
+<option>10</option><option>11</option><option>12</option>
+</select>
+
+<div id="questionsContainer"></div>
+
+<button onclick="addQuestion()">+ Add Question</button>
+<button onclick="saveQuiz()">Save Quiz</button>
+<br>
+<button onclick="generate()">Generate</button>
+<button onclick="saveImage()">Save as Image</button>
+
+<div id="output"></div>
+</div>
+
+<script>
+
+/* ===== DAYS ===== */
+for(let i=1;i<=31;i++){
+let d=i<10?"0"+i:i;
+day.innerHTML+=`<option>${d}</option>`;
+}
+
+/* ===== NAV ===== */
+function newQuiz(){
+homeScreen.style.display="none";
+mainUI.style.display="block";
+}
+
+function goHome(){
+homeScreen.style.display="block";
+mainUI.style.display="none";
+}
+
+function goBack(){
+homeScreen.style.display="none";
+mainUI.style.display="block";
+}
+
+/* ===== OTHER ===== */
+function toggleOtherSubject(){
+otherSubject.style.display =
+subjectSelect.value==="other" ? "block":"none";
+}
+
+function toggleOtherGroup(){
+otherGroup.style.display =
+groupSelect.value==="other" ? "block":"none";
+}
+
+/* ===== ADD QUESTIONS ===== */
+function addQuestion(){
+
+let count = prompt("How many questions?");
+if(!count) return;
+
+questionsContainer.innerHTML="";
+
+for(let i=1;i<=count;i++){
+
+let div=document.createElement("div");
+div.className="questionBox";
+
+div.innerHTML=`
+<textarea class="qText"
+placeholder="${i}- Question
+A option
+B option
+C option
+D option
+E option"></textarea>
+
+<label>Correct Answer:</label>
+<select class="correctAnswer">
+<option value="">Select</option>
+<option>A</option>
+<option>B</option>
+<option>C</option>
+<option>D</option>
+<option>E</option>
+</select>
+`;
+
+questionsContainer.appendChild(div);
+}
+}
+
+/* ===== SAVE QUIZ AUTO ===== */
+function saveQuiz(){
+
+let subject =
+subjectSelect.value==="other"
+? otherSubject.value
+: subjectSelect.value;
+
+let name = sheetName.value.trim();
+if(!name){
+alert("Write sheet name first");
+return;
+}
+
+let key="quiz_"+subject+"_"+name;
+
+let data={
+sheetName:name,
+subject:subject,
+group:groupSelect.value,
+year:year.value,
+month:month.value,
+day:day.value,
+questions:[]
+};
+
+document.querySelectorAll(".questionBox").forEach(box=>{
+data.questions.push({
+text:box.querySelector(".qText").value,
+answer:box.querySelector(".correctAnswer").value
+});
+});
+
+localStorage.setItem(key,JSON.stringify(data));
+alert("Saved");
+}
+
+/* ===== LOAD MENU ===== */
+
+const subjects=[
+"Oral histology",
+"Microbiology",
+"Removeable prosthodontic",
+"Pathology",
+"Fixed prosthodontic",
+"Conservative",
+"Pharmacology"
+];
+
+subjects.forEach(s=>{
+let o=document.createElement("option");
+o.textContent=s;
+loadSubject.appendChild(o);
+});
+
+function showLoadMenu(){
+loadMenu.style.display="block";
+updateSheetList();
+}
+
+loadSubject.addEventListener("change",updateSheetList);
+
+function updateSheetList(){
+
+let subject=loadSubject.value;
+
+let keys=Object.keys(localStorage)
+.filter(k=>k.startsWith("quiz_"+subject+"_"));
+
+loadSheet.innerHTML="";
+
+keys.forEach(k=>{
+let name=k.replace("quiz_"+subject+"_","");
+let o=document.createElement("option");
+o.textContent=name;
+loadSheet.appendChild(o);
+});
+}
+
+function loadSelectedQuiz(){
+
+let subject=loadSubject.value;
+let name=loadSheet.value;
+
+let raw=localStorage.getItem("quiz_"+subject+"_"+name);
+let data=JSON.parse(raw);
+
+newQuiz();
+
+sheetName.value=data.sheetName;
+subjectSelect.value=data.subject;
+groupSelect.value=data.group;
+year.value=data.year;
+month.value=data.month;
+day.value=data.day;
+
+questionsContainer.innerHTML="";
+
+data.questions.forEach(q=>{
+let div=document.createElement("div");
+div.className="questionBox";
+
+div.innerHTML=`
+<textarea class="qText">${q.text}</textarea>
+<label>Correct Answer:</label>
+<select class="correctAnswer">
+<option value="">Select</option>
+<option ${q.answer==="A"?"selected":""}>A</option>
+<option ${q.answer==="B"?"selected":""}>B</option>
+<option ${q.answer==="C"?"selected":""}>C</option>
+<option ${q.answer==="D"?"selected":""}>D</option>
+<option ${q.answer==="E"?"selected":""}>E</option>
+</select>
+`;
+
+questionsContainer.appendChild(div);
+});
+}
+
+/* ===== GENERATE ===== */
+function generate(){
+
+let subject =
+subjectSelect.value==="other"
+? otherSubject.value
+: subjectSelect.value;
+
+let group =
+groupSelect.value==="other"
+? otherGroup.value
+: groupSelect.value;
+
+let html=`
+<div class="headerBox">
+<div class="subjectTitle">${subject}</div>
+${sheetName.value?`<div class="sheetName">${sheetName.value}</div>`:""}
+<div class="metaRow">
+<div class="metaCard">Group: ${group}</div>
+<div class="metaCard">Date: ${year.value}-${month.value}-${day.value}</div>
+</div>
+</div>
+`;
+
+document.querySelectorAll(".questionBox").forEach((box)=>{
+
+let lines=box.querySelector(".qText").value.split("\n");
+let correct=box.querySelector(".correctAnswer").value;
+
+html+=`<div class="question">`;
+
+lines.forEach(l=>{
+l=l.trim();
+if(!l) return;
+
+if(/^[A-E]/i.test(l) && l[0].toUpperCase()===correct)
+html+=`<p class="answer">${l}</p>`;
+else
+html+=`<p>${l}</p>`;
+});
+
+html+=`</div>`;
+});
+
+html+=`<div class="footer">@Idkwjwnn</div>`;
+output.innerHTML=html;
+}
+
+/* ===== SAVE IMAGE ===== */
+function saveImage(){
+
+let el=document.getElementById("output");
+
+el.style.width="820px";
+el.style.height="auto";
+el.style.overflow="visible";
+
+html2canvas(el,{
+backgroundColor:"#0b0b0b",
+scale:2
+}).then(canvas=>{
+let link=document.createElement("a");
+link.download="quiz.png";
+link.href=canvas.toDataURL("image/png");
+link.click();
+
+el.style.width="";
+el.style.height="";
+el.style.overflow="";
+});
+}
+</script>
+
+</body>
+</html>
