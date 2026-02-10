@@ -1376,57 +1376,7 @@ function downloadOutput() {
     showToast('HTML file downloaded!');
 }
 
-// ===== الدالة الجديدة: تقسيم المحتوى إلى صفحات =====
-function splitContentIntoPages(content, maxHeight = 1200) {
-    const pages = [];
-    let currentPage = [];
-    let currentHeight = 0;
-    
-    // تقسيم المحتوى إلى عناصر (كل سؤال هو عنصر منفصل)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    const elements = Array.from(tempDiv.children);
-    
-    // إضافة الهيدر كصفحة منفصلة أولاً
-    const headerElements = elements.filter(el => 
-        el.className === 'preview-header' || 
-        el.querySelector('.preview-header')
-    );
-    
-    if (headerElements.length > 0) {
-        pages.push([headerElements[0]]);
-    }
-    
-    // العناصر المتبقية (الأسئلة)
-    const questionElements = elements.filter(el => 
-        !el.className.includes('preview-header') && 
-        !el.querySelector('.preview-header')
-    );
-    
-    // توزيع الأسئلة على الصفحات
-    questionElements.forEach(element => {
-        // تقدير ارتفاع العنصر (تقريبي)
-        const estimatedHeight = element.innerHTML.length / 5; // تقدير تقريبي
-        
-        if (currentHeight + estimatedHeight > maxHeight && currentPage.length > 0) {
-            pages.push([...currentPage]);
-            currentPage = [];
-            currentHeight = 0;
-        }
-        
-        currentPage.push(element);
-        currentHeight += estimatedHeight;
-    });
-    
-    // إضافة آخر صفحة إذا كانت تحتوي على عناصر
-    if (currentPage.length > 0) {
-        pages.push(currentPage);
-    }
-    
-    return pages;
-}
-
-// ===== الإصلاح: Save as Image مع صفحات متعددة =====
+// ===== Save as Image - الإصدار المصحح تمامًا =====
 async function saveImage() {
     if (!document.getElementById('outputContent').innerHTML) {
         showToast('Please generate the quiz first!', 'error');
@@ -1439,101 +1389,91 @@ async function saveImage() {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         saveBtn.disabled = true;
         
-        const content = document.getElementById('outputContent').innerHTML;
-        const pages = splitContentIntoPages(content, 1000); // تقسيم إلى صفحات بارتفاع 1000px
+        // أبعاد ثابتة بنسبة 4:3 (مثل شاشة iPad)
+        const CONTAINER_WIDTH = 1200;   // عرض ثابت
+        const CONTAINER_HEIGHT = 900;   // ارتفاع ثابت (نسبة 4:3)
         
-        if (pages.length === 0) {
-            showToast('No content to save!', 'error');
-            return;
-        }
+        // إنشاء حاوية خارجية ثابتة الأبعاد
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = CONTAINER_WIDTH + 'px';
+        container.style.height = CONTAINER_HEIGHT + 'px';
+        container.style.background = '#0b0b0b';
+        container.style.overflow = 'hidden';
+        container.style.display = 'flex';
+        container.style.alignItems = 'flex-start';
+        container.style.justifyContent = 'center';
         
-        // إنشاء ZIP لجميع الصفحات إذا كان هناك أكثر من صفحة
-        if (pages.length > 1) {
-            const JSZip = window.JSZip;
-            if (!JSZip) {
-                // تحميل JSZip ديناميكياً إذا لم يكن موجوداً
-                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
-            }
-            
-            const zip = new JSZip();
-            
-            for (let i = 0; i < pages.length; i++) {
-                const pageContent = pages[i].map(el => el.outerHTML).join('');
-                const tempDiv = document.createElement('div');
-                tempDiv.style.position = 'fixed';
-                tempDiv.style.left = '-9999px';
-                tempDiv.style.top = '0';
-                tempDiv.style.width = '800px';
-                tempDiv.style.background = '#0b0b0b';
-                tempDiv.style.padding = '40px';
-                tempDiv.style.color = 'white';
-                tempDiv.style.fontFamily = 'Arial, sans-serif';
-                tempDiv.innerHTML = pageContent;
-                document.body.appendChild(tempDiv);
-                
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                const canvas = await html2canvas(tempDiv, {
-                    backgroundColor: '#0b0b0b',
-                    scale: 3, // زيادة الدقة
-                    useCORS: true,
-                    logging: false
-                });
-                
-                document.body.removeChild(tempDiv);
-                
-                // إضافة الصورة إلى ZIP
-                const imageData = canvas.toDataURL('image/png').split(',')[1];
-                zip.file(`quiz_page_${i + 1}.png`, imageData, {base64: true});
-            }
-            
-            // تحميل ملف ZIP
-            const zipBlob = await zip.generateAsync({type: 'blob'});
-            const url = URL.createObjectURL(zipBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${sheetName.value || 'quiz'}_pages.zip`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showToast(`${pages.length} pages saved as ZIP file!`);
-            
-        } else {
-            // صفحة واحدة فقط
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'fixed';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.top = '0';
-            tempDiv.style.width = '800px';
-            tempDiv.style.background = '#0b0b0b';
-            tempDiv.style.padding = '40px';
-            tempDiv.style.color = 'white';
-            tempDiv.style.fontFamily = 'Arial, sans-serif';
-            tempDiv.innerHTML = pages[0].map(el => el.outerHTML).join('');
-            document.body.appendChild(tempDiv);
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const canvas = await html2canvas(tempDiv, {
-                backgroundColor: '#0b0b0b',
-                scale: 3, // زيادة الدقة
-                useCORS: true,
-                logging: false
-            });
-            
-            document.body.removeChild(tempDiv);
-            
-            const link = document.createElement('a');
-            const fileName = `${sheetName.value || 'quiz'}.png`;
-            link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showToast('Image saved successfully!');
+        // إنشاء عنصر داخلي للمحتوى
+        const contentDiv = document.createElement('div');
+        contentDiv.style.width = '100%';
+        contentDiv.style.maxWidth = '1000px'; // عرض المحتوى الداخلي أقل من العرض الكلي
+        contentDiv.style.background = '#0b0b0b';
+        contentDiv.style.color = 'white';
+        contentDiv.style.fontFamily = 'Arial, sans-serif';
+        contentDiv.style.padding = '40px 20px';
+        contentDiv.style.boxSizing = 'border-box';
+        
+        // نسخ محتوى outputContent
+        contentDiv.innerHTML = document.getElementById('outputContent').innerHTML;
+        
+        // إضافة المحتوى إلى الحاوية
+        container.appendChild(contentDiv);
+        document.body.appendChild(container);
+        
+        // الانتظار لضمان تحميل وتصيير المحتوى
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // حساب ارتفاع المحتوى الفعلي
+        const contentRealHeight = contentDiv.scrollHeight;
+        console.log('ارتفاع المحتوى الفعلي:', contentRealHeight, 'px');
+        
+        // حساب معامل التصغير المطلوب
+        let scale = 1;
+        if (contentRealHeight > CONTAINER_HEIGHT) {
+            scale = CONTAINER_HEIGHT / contentRealHeight;
         }
+        console.log('معامل التصغير:', scale);
+        
+        // تطبيق التصغير على المحتوى
+        contentDiv.style.transform = `scale(${scale})`;
+        contentDiv.style.transformOrigin = 'top center';
+        contentDiv.style.width = (1000 / scale) + 'px'; // تعديل العرض قبل التصغير ليصبح 1000 بعد التصغير
+        contentDiv.style.height = (contentRealHeight * scale) + 'px';
+        contentDiv.style.margin = '0 auto';
+        
+        // إعادة حساب حجم الحاوية بعد التصغير
+        container.style.height = Math.min(CONTAINER_HEIGHT, contentRealHeight * scale) + 'px';
+        
+        // الانتظار للتأكد من تطبيق التحويلات
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // إنشاء الصورة
+        const canvas = await html2canvas(container, {
+            backgroundColor: '#0b0b0b',
+            scale: 2, // دقة عالية
+            useCORS: true,
+            logging: false,
+            width: CONTAINER_WIDTH,
+            height: CONTAINER_HEIGHT
+        });
+        
+        // تنظيف العناصر المؤقتة
+        document.body.removeChild(container);
+        
+        // حفظ الصورة
+        const link = document.createElement('a');
+        const fileName = `${sheetName.value || 'quiz'}_${subjectSelect.value || 'subject'}.png`;
+        link.download = fileName;
+        link.href = canvas.toDataURL('image/png');
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Image saved successfully!');
         
     } catch (error) {
         console.error('Error saving image:', error);
@@ -1545,7 +1485,7 @@ async function saveImage() {
     }
 }
 
-// ===== الإصلاح: Save as PDF مع صفحات متعددة =====
+// ===== Save as PDF =====
 async function savePDF() {
     if (!document.getElementById('outputContent').innerHTML) {
         showToast('Please generate the quiz first!', 'error');
@@ -1566,54 +1506,42 @@ async function savePDF() {
         });
         
         const content = document.getElementById('outputContent').innerHTML;
-        const pages = splitContentIntoPages(content, 700); // تقسيم إلى صفحات تناسب A4
         
-        let currentY = 20;
+        // إنشاء عنصر مؤقت لتصدير المحتوى كصورة
+        const tempDiv = document.createElement('div');
+        tempDiv.style.width = '210mm';  // عرض A4 بالمليمتر
+        tempDiv.style.background = '#ffffff';
+        tempDiv.style.color = '#000000';
+        tempDiv.style.fontFamily = 'Arial, sans-serif';
+        tempDiv.style.padding = '20mm';
+        tempDiv.style.boxSizing = 'border-box';
+        tempDiv.innerHTML = content;
+        document.body.appendChild(tempDiv);
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+        
+        document.body.removeChild(tempDiv);
+        
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 20;
         
-        for (let i = 0; i < pages.length; i++) {
-            if (i > 0) {
-                pdf.addPage();
-                currentY = margin;
-            }
-            
-            const pageContent = pages[i].map(el => el.outerHTML).join('');
-            const tempDiv = document.createElement('div');
-            tempDiv.style.width = (pageWidth - 2 * margin) + 'mm';
-            tempDiv.style.background = '#ffffff';
-            tempDiv.style.color = '#000000';
-            tempDiv.style.fontFamily = 'Arial, sans-serif';
-            tempDiv.style.padding = '10px';
-            tempDiv.innerHTML = pageContent;
-            document.body.appendChild(tempDiv);
-            
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            const canvas = await html2canvas(tempDiv, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-            
-            document.body.removeChild(tempDiv);
-            
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
-            const imgWidth = pageWidth - 2 * margin;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
-            
-            // إضافة رقم الصفحة
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text(`Page ${i + 1} of ${pages.length}`, pageWidth - margin - 20, pageHeight - 10);
-        }
+        // حساب أبعاد الصورة لتناسب الصفحة
+        const imgWidth = pageWidth - 20; // هوامش
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'JPEG', 10, 10, imgWidth, imgHeight);
         
         pdf.save(`${sheetName.value || 'quiz'}.pdf`);
-        showToast('PDF saved successfully with ' + pages.length + ' pages!');
+        showToast('PDF saved successfully!');
         
     } catch (error) {
         console.error('Error creating PDF:', error);
@@ -1623,17 +1551,6 @@ async function savePDF() {
         saveBtn.innerHTML = '<i class="fas fa-file-pdf"></i> Save as PDF';
         saveBtn.disabled = false;
     }
-}
-
-// دالة مساعدة لتحميل scripts ديناميكياً
-function loadScript(url) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
 }
 
 // ===== Share function =====
@@ -1731,9 +1648,6 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
-
-// ===== دالة لتحميل JSZip إذا لم يكن موجوداً =====
-window.JSZip = window.JSZip || null;
 </script>
 </body>
 </html>
